@@ -199,19 +199,17 @@ export default function NewTaskPage() {
               </Label>
               <Input
                 id="workdir"
-                placeholder={
-                  typeof window !== "undefined" && navigator.platform.startsWith("Win")
-                    ? "C:\\Games\\MyProject"
-                    : "/home/user/myproject"
-                }
+                placeholder="absolute path"
                 value={workdir}
                 onChange={(e) => setWorkdir(e.target.value)}
                 disabled={loading}
                 className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                Absolute path. If set, the agent can read and write files in this directory.
-                Leave empty for a text-only response.
+                Absolute path (Windows: <span className="font-mono">C:\Games\MyProject</span>{" "}
+                · Unix: <span className="font-mono">/home/user/myproject</span>). If set,
+                the agent can read and write files in this directory. Leave empty for a
+                text-only response.
               </p>
             </div>
 
