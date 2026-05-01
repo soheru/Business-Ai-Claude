@@ -1,0 +1,246 @@
+"use client";
+
+import { useSearchParams, useRouter } from "next/navigation";
+import { useState } from "react";
+import type { AgentRole, TaskPriority, CreateTaskRequest } from "@/lib/types";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import Link from "next/link";
+import { ArrowLeft, Loader2 } from "lucide-react";
+
+const AGENT_OPTIONS: { value: AgentRole; label: string; description: string }[] = [
+  { value: "ceo", label: "CEO", description: "Orchestrator — delegates to all other agents" },
+  { value: "marketer", label: "Marketer", description: "Marketing, copy, campaigns" },
+  { value: "developer", label: "Developer", description: "Code, architecture, technical work" },
+  { value: "pm", label: "PM", description: "Product management, planning" },
+  { value: "ux", label: "UX", description: "User experience, design" },
+  { value: "qa", label: "QA", description: "Testing, quality assurance" },
+];
+
+const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+  { value: "urgent", label: "Urgent" },
+];
+
+export default function NewTaskPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const preselectedAgent = (searchParams.get("agent") ?? "ceo") as AgentRole;
+
+  const [agentRole, setAgentRole] = useState<AgentRole>(
+    AGENT_OPTIONS.find((o) => o.value === preselectedAgent)
+      ? preselectedAgent
+      : "ceo"
+  );
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState<TaskPriority>("medium");
+  const [workdir, setWorkdir] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim()) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // 1. Create task
+      const body: CreateTaskRequest = {
+        agentRole,
+        title: title.trim(),
+        description: description.trim(),
+        priority,
+        ...(workdir.trim() && { workdir: workdir.trim() }),
+      };
+
+      const createRes = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!createRes.ok) {
+        const text = await createRes.text();
+        throw new Error(`Failed to create task: ${text}`);
+      }
+
+      const task = (await createRes.json()) as { id: string };
+
+      // 2. Kick off run
+      const runRes = await fetch(`/api/tasks/${task.id}/run`, {
+        method: "POST",
+      });
+
+      if (!runRes.ok) {
+        // Task created but run failed — still navigate to task
+        router.push(`/dashboard/tasks/${task.id}`);
+        return;
+      }
+
+      // 3. Navigate to task detail
+      router.push(`/dashboard/tasks/${task.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="p-8 max-w-2xl mx-auto space-y-6">
+      <Button asChild variant="ghost" size="sm" className="-ml-2">
+        <Link href="/dashboard/tasks">
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Back to Tasks
+        </Link>
+      </Button>
+
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">New Task</h2>
+        <p className="text-muted-foreground mt-1">
+          Assign a task to an agent and kick off a run
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Task Details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Agent select */}
+            <div className="space-y-2">
+              <Label>Agent</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {AGENT_OPTIONS.map(({ value, label, description }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setAgentRole(value)}
+                    className={`text-left rounded-md border p-3 transition-colors text-sm ${
+                      agentRole === value
+                        ? "border-ring bg-accent text-accent-foreground"
+                        : "border-border bg-card text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                    }`}
+                  >
+                    <p className="font-semibold">{label}</p>
+                    <p className="text-xs mt-0.5 opacity-70 line-clamp-2">
+                      {description}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Title */}
+            <div className="space-y-2">
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                placeholder="e.g. Write a landing page copy for v2 launch"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label htmlFor="description">
+                Description{" "}
+                <span className="text-muted-foreground font-normal">(optional)</span>
+              </Label>
+              <Textarea
+                id="description"
+                placeholder="Provide context, constraints, or expected output…"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={5}
+                disabled={loading}
+                className="resize-none"
+              />
+            </div>
+
+            {/* Priority */}
+            <div className="space-y-2">
+              <Label>Priority</Label>
+              <div className="flex gap-2">
+                {PRIORITY_OPTIONS.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setPriority(value)}
+                    className={`flex-1 rounded-md border px-3 py-2 text-sm transition-colors ${
+                      priority === value
+                        ? "border-ring bg-accent text-accent-foreground font-medium"
+                        : "border-border text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Working Directory */}
+            <div className="space-y-2">
+              <Label htmlFor="workdir">
+                Working Directory{" "}
+                <span className="text-muted-foreground font-normal">(optional)</span>
+              </Label>
+              <Input
+                id="workdir"
+                placeholder={
+                  typeof window !== "undefined" && navigator.platform.startsWith("Win")
+                    ? "C:\\Games\\MyProject"
+                    : "/home/user/myproject"
+                }
+                value={workdir}
+                onChange={(e) => setWorkdir(e.target.value)}
+                disabled={loading}
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Absolute path. If set, the agent can read and write files in this directory.
+                Leave empty for a text-only response.
+              </p>
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="text-sm text-destructive-foreground bg-destructive/20 border border-destructive/50 rounded px-3 py-2">
+                {error}
+              </div>
+            )}
+
+            {/* Submit */}
+            <div className="flex gap-3 pt-2">
+              <Button type="submit" disabled={loading || !title.trim()} className="flex-1">
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating &amp; Running…
+                  </>
+                ) : (
+                  "Create Task & Run"
+                )}
+              </Button>
+              <Button asChild variant="outline" disabled={loading}>
+                <Link href="/dashboard/tasks">Cancel</Link>
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

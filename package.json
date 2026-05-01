@@ -1,0 +1,68 @@
+{
+  "name": "business-ai-claude",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first multi-agent orchestration dashboard for Claude. Run a full AI product team (CEO, Marketer, Developer, PM, UX, QA + custom agents) on your machine using your existing Claude subscription.",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "claude-agent-sdk",
+    "anthropic",
+    "ai-agents",
+    "multi-agent",
+    "orchestration",
+    "agent-dashboard",
+    "nextjs",
+    "typescript",
+    "local-first",
+    "sqlite"
+  ],
+  "homepage": "https://github.com/soheru/Business-Ai-Claude",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/soheru/Business-Ai-Claude.git"
+  },
+  "bugs": {
+    "url": "https://github.com/soheru/Business-Ai-Claude/issues"
+  },
+  "author": {
+    "name": "Sohail Khan",
+    "url": "https://sohail.codes"
+  },
+  "license": "MIT",
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "db:init": "tsx db/init.ts",
+    "db:seed": "tsx db/seed.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.1.0",
+    "better-sqlite3": "^11.7.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^0.468.0",
+    "next": "15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^2.5.5",
+    "tailwindcss-animate": "^1.0.7",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
